@@ -29,7 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html>
-<head><title>Login</title></head>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
 
 <h3>Login</h3>
@@ -43,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Password: <input type="password" name="password" required><br><br>
     <button type="submit">Login</button>
 </form>
+
 <p><a href="register.php">Create an account</a></p>
+
 </body>
 </html>
