@@ -13,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($username === '' || $password === '') {
         $error = 'Username and password required';
     } else {
-        // Check if username already exists
         $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
         $stmt->execute([$username]);
 
@@ -24,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$username, $password]);
             $newId = $pdo->lastInsertId();
 
-            // Log the registration (manually set username since user isn't logged in yet)
             $ip = $_SERVER['REMOTE_ADDR'] ?? '';
             $stmt = $pdo->prepare("
                 INSERT INTO audit_logs (user_id, username, action, details, ip_address)
@@ -39,7 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html>
-<head><title>Register</title></head>
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
 
 <h3>Register</h3>
