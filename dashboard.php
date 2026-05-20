@@ -10,7 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-// Handle CREATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create'])) {
     $title   = trim($_POST['title']);
     $content = trim($_POST['content']);
@@ -24,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create'])) {
     exit;
 }
 
-// Handle UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     $id      = (int)$_POST['id'];
     $title   = trim($_POST['title']);
@@ -38,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     exit;
 }
 
-// Handle DELETE
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
 
@@ -63,7 +60,10 @@ if (isset($_GET['edit'])) {
 ?>
 <!DOCTYPE html>
 <html>
-<head><title>Dashboard</title></head>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
 
 <p>
