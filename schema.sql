@@ -31,5 +31,5 @@ CREATE TABLE audit_logs (
 
 -- Seed users (password = "password123" for both)
 INSERT INTO users (username, password, role) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-('john',  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user');
+('admin', 'password123', 'admin'),
+('john',  'password123', 'user');
