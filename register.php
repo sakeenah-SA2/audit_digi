@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetch()) {
             $error = 'Username already taken';
         } else {
+            // Plaintext storage by request (demo only — not for production).
             $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'user')");
             $stmt->execute([$username, $password]);
             $newId = $pdo->lastInsertId();

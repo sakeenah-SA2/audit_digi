@@ -68,6 +68,7 @@ if (isset($_GET['edit'])) {
 
 <p>
     Logged in as: <?= htmlspecialchars($_SESSION['username']) ?>
+    | <a href="change-password.php">Change Password</a>
     <?php if ($_SESSION['role'] === 'admin'): ?>
         | <a href="logs.php">View Logs</a>
     <?php endif; ?>

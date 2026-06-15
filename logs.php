@@ -11,10 +11,7 @@ $logs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC")->fetchA
 ?>
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Audit Logs</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+<head><title>Audit Logs</title></head>
 <body>
 
 <p>
@@ -24,7 +21,9 @@ $logs = $pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC")->fetchA
 
 <h3>Audit Logs</h3>
 
-<table>
+<p><a href="export_logs.php">Export as CSV</a></p>
+
+<table border="1" cellpadding="5">
     <tr>
         <th>ID</th>
         <th>User</th>
