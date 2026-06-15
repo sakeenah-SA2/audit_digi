@@ -9,11 +9,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
+    // Pull the account (prepared statement = no SQL injection).
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
-    if ($user && $password === $user['password']) {
+    // Use native DateTime objects throughout so we compare real moments
+    // in time, not fragile string comparisons.
+    $now = new DateTime();
+
+    if (!$user) {
+        // Unknown username. Keep the message generic so we don't tell an
+        // attacker which usernames exist.
+        $error = 'Invalid username or password';
+        logAction($pdo, 'LOGIN_FAILED', "Failed login attempt for '$username'");
+
+    } elseif ($user['locked_until'] !== null && $now < new DateTime($user['locked_until'])) {
+        // ---- STEP 1: Refuse locked accounts BEFORE touching the password. ----
+        // This is the core of brute-force defence: once locked, every attempt
+        // is rejected cheaply without giving the attacker another password guess.
+        $lockedUntil = new DateTime($user['locked_until']);
+        $remaining   = $now->diff($lockedUntil);           // DateInterval
+        $minutes     = ($remaining->days * 24 * 60) + ($remaining->h * 60) + $remaining->i + 1;
+
+        $error = "Account locked. Try again in about {$minutes} minute(s).";
+        logAction($pdo, 'LOGIN_LOCKED', "Login blocked for '$username' (still locked)");
+
+    } elseif ($password === $user['password']) {
+        // ---- STEP 2 (success): correct password. Reset the counter. ----
+        // NOTE: plaintext comparison by request (demo only — not for production).
+        // A successful login clears the failure streak and any expired lock so
+        // legitimate users never carry penalties forward.
+        $reset = $pdo->prepare("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?");
+        $reset->execute([$user['id']]);
+
+        // Prevent session fixation: issue a fresh session ID on privilege change.
+        session_regenerate_id(true);
         $_SESSION['user_id']  = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role']     = $user['role'];
@@ -21,9 +52,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         logAction($pdo, 'LOGIN', "User '{$user['username']}' logged in");
         header('Location: dashboard.php');
         exit;
+
     } else {
+        // ---- STEP 3 (failure): wrong password. Increment + adaptive backoff. ----
+        $attempts = (int) $user['failed_attempts'] + 1;
+
+        // Exponential-style backoff. We use switch(true) so the thresholds also
+        // cover the "in-between" counts (e.g. 4 still gets the 3-failure penalty,
+        // 6 gets the 5-failure penalty) instead of leaving gaps.
+        $lockMinutes = 0;
+        switch (true) {
+            case $attempts > 7:        // 8+ failures  -> 24 hours
+                $lockMinutes = 24 * 60;
+                break;
+            case $attempts === 7:      // 7 failures   -> 2 hours
+                $lockMinutes = 2 * 60;
+                break;
+            case $attempts >= 5:       // 5-6 failures -> 15 minutes
+                $lockMinutes = 15;
+                break;
+            case $attempts >= 3:       // 3-4 failures -> 1 minute
+                $lockMinutes = 1;
+                break;
+            default:                   // 1-2 failures -> no lock yet
+                $lockMinutes = 0;
+        }
+
+        // Build the lockout expiry as a real DateTime, then format for storage.
+        $lockedUntil = null;
+        if ($lockMinutes > 0) {
+            $lockedUntil = (clone $now)
+                ->add(new DateInterval("PT{$lockMinutes}M"))
+                ->format('Y-m-d H:i:s');
+        }
+
+        $update = $pdo->prepare("UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?");
+        $update->execute([$attempts, $lockedUntil, $user['id']]);
+
         $error = 'Invalid username or password';
-        logAction($pdo, 'LOGIN_FAILED', "Failed login attempt for '$username'");
+        if ($lockMinutes > 0) {
+            $error .= " — account locked for {$lockMinutes} minute(s) after {$attempts} failed attempts.";
+        }
+        logAction($pdo, 'LOGIN_FAILED', "Failed login for '$username' (attempt #$attempts)");
     }
 }
 ?>

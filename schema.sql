@@ -6,6 +6,8 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'user') DEFAULT 'user',
+    failed_attempts INT NOT NULL DEFAULT 0,   -- adaptive lockout: consecutive failures
+    locked_until DATETIME NULL DEFAULT NULL,  -- adaptive lockout: locked until this time
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -31,5 +33,5 @@ CREATE TABLE audit_logs (
 
 -- Seed users (password = "password123" for both)
 INSERT INTO users (username, password, role) VALUES
-('admin', 'password123', 'admin'),
-('john',  'password123', 'user');
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
+('john',  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user');
