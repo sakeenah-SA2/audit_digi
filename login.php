@@ -2,6 +2,7 @@
 session_start();
 require 'db.php';
 require 'logger.php';
+require 'geo.php';
 
 $error = '';
 
@@ -43,13 +44,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $reset = $pdo->prepare("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?");
         $reset->execute([$user['id']]);
 
+        // If a prior anomaly already flagged this account, it stays gated until
+        // OTP verification clears it — a correct password alone isn't enough.
+        if ($user['security_status'] === 'otp_required') {
+            logAction($pdo, 'LOGIN_BLOCKED_OTP', "User '{$user['username']}' must clear OTP after a security alert");
+            $_SESSION = [];
+            session_regenerate_id(true);
+            $_SESSION['otp_pending_user'] = $user['id'];   // remember who, nothing else
+            header('Location: security-alert.php');
+            exit;
+        }
+
+        // ---- GEOLOCATION / IMPOSSIBLE-TRAVEL CHECK ----
+        $ip      = $_SERVER['REMOTE_ADDR'] ?? '';
+        $geo     = geoLookup($ip);                                  // graceful on API failure
+        $anomaly = detectImpossibleTravel($pdo, (int) $user['id'], $geo);
+
+        if (!empty($anomaly['anomaly'])) {
+            // Impossible travel: do NOT grant access. Record the suspicious
+            // location for forensics, flag the account for OTP, and tear the
+            // session down so no half-authenticated state survives.
+            recordLogin($pdo, (int) $user['id'], $ip, $geo);
+
+            $flag = $pdo->prepare("UPDATE users SET security_status = 'otp_required' WHERE id = ?");
+            $flag->execute([$user['id']]);
+
+            logAction($pdo, 'IMPOSSIBLE_TRAVEL',
+                "Anomaly for '{$user['username']}': {$anomaly['from']} -> {$anomaly['to']}, "
+                . "{$anomaly['distance_km']}km in {$anomaly['hours']}h = {$anomaly['speed_kmh']} km/h");
+
+            $_SESSION = [];
+            session_destroy();
+            session_start();                          // fresh, anonymous session
+            session_regenerate_id(true);
+            $_SESSION['otp_pending_user'] = $user['id'];
+
+            header('Location: security-alert.php');
+            exit;
+        }
+
+        // No anomaly: record this location, then log the user in normally.
+        recordLogin($pdo, (int) $user['id'], $ip, $geo);
+
         // Prevent session fixation: issue a fresh session ID on privilege change.
         session_regenerate_id(true);
         $_SESSION['user_id']  = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role']     = $user['role'];
 
-        logAction($pdo, 'LOGIN', "User '{$user['username']}' logged in");
+        logAction($pdo, 'LOGIN', "User '{$user['username']}' logged in from {$geo['city']}, {$geo['country']}");
         header('Location: dashboard.php');
         exit;
 
