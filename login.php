@@ -157,6 +157,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form method="POST">
     Username: <input type="text" name="username" required><br><br>
     Password: <input type="password" name="password" required><br><br>
+
+    <?php if (isGeoMockMode()): ?>
+        <!-- DEMO ONLY: lets you simulate where you're "logging in from" so the
+             impossible-travel detector can be tested on localhost. Hidden
+             automatically once GEO_MOCK_MODE is off. -->
+        Simulate location:
+        <select name="mock_loc">
+            <?php $picked = $_REQUEST['mock_loc'] ?? 'lagos'; ?>
+            <?php foreach (geoMockLocations() as $key => $loc): ?>
+                <option value="<?= htmlspecialchars($key) ?>"
+                    <?= $key === $picked ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($loc['city'] . ', ' . $loc['country']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select><br><br>
+    <?php endif; ?>
+
     <button type="submit">Login</button>
 </form>
 
