@@ -42,6 +42,22 @@ $GLOBALS['GEO_MOCK_LOCATIONS'] = [
 ];
 
 // ---------------------------------------------------------------------------
+// HELPERS FOR THE UI
+// ---------------------------------------------------------------------------
+
+/** Is the demo location picker active? (Only meaningful in mock mode.) */
+function isGeoMockMode(): bool
+{
+    return GEO_MOCK_MODE === true;
+}
+
+/** The named mock locations, for building a dropdown on the login page. */
+function geoMockLocations(): array
+{
+    return $GLOBALS['GEO_MOCK_LOCATIONS'];
+}
+
+// ---------------------------------------------------------------------------
 // 1. GEOLOCATION LOOKUP
 // ---------------------------------------------------------------------------
 
@@ -57,21 +73,24 @@ function geoLookup(string $ip): array
 {
     // --- Mock mode: ignore the IP, return a simulated location. ---
     if (GEO_MOCK_MODE) {
-        // Option A: pass any raw coordinates directly in the URL, e.g.
+        // $_REQUEST so the value works whether it comes from the login form
+        // (POST dropdown) or straight from the URL (?mock_loc=tokyo).
+
+        // Option A: pass any raw coordinates directly, e.g.
         //   login.php?mock_lat=19.0760&mock_lon=72.8777&mock_city=Mumbai
         // Lets you test ANY point on Earth without editing this file.
-        if (isset($_GET['mock_lat'], $_GET['mock_lon'])) {
+        if (isset($_REQUEST['mock_lat'], $_REQUEST['mock_lon'])) {
             return [
-                'city'     => $_GET['mock_city']    ?? 'Custom',
-                'country'  => $_GET['mock_country'] ?? 'Custom',
-                'lat'      => (float) $_GET['mock_lat'],
-                'lon'      => (float) $_GET['mock_lon'],
+                'city'     => $_REQUEST['mock_city']    ?? 'Custom',
+                'country'  => $_REQUEST['mock_country'] ?? 'Custom',
+                'lat'      => (float) $_REQUEST['mock_lat'],
+                'lon'      => (float) $_REQUEST['mock_lon'],
                 'verified' => true,
             ];
         }
 
-        // Option B: pick one of the named cities below via ?mock_loc=tokyo etc.
-        $key = $_GET['mock_loc'] ?? 'lagos';
+        // Option B: pick one of the named cities (login dropdown or ?mock_loc=).
+        $key = $_REQUEST['mock_loc'] ?? 'lagos';
         $loc = $GLOBALS['GEO_MOCK_LOCATIONS'][$key]
             ?? $GLOBALS['GEO_MOCK_LOCATIONS']['lagos'];
         return [
