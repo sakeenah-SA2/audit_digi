@@ -29,9 +29,16 @@ define('MIN_DISTANCE_KM', 50);
 
 // Hardcoded coordinates for mock mode.
 $GLOBALS['GEO_MOCK_LOCATIONS'] = [
-    'lagos'   => ['city' => 'Lagos',    'country' => 'Nigeria',       'lat' => 6.5244,  'lon' => 3.3792],
-    'newyork' => ['city' => 'New York', 'country' => 'United States', 'lat' => 40.7128, 'lon' => -74.0060],
-    'london'  => ['city' => 'London',   'country' => 'United Kingdom','lat' => 51.5074, 'lon' => -0.1278],
+    'lagos'    => ['city' => 'Lagos',     'country' => 'Nigeria',        'lat' => 6.5244,   'lon' => 3.3792],
+    'abuja'    => ['city' => 'Abuja',     'country' => 'Nigeria',        'lat' => 9.0765,   'lon' => 7.3986],
+    'newyork'  => ['city' => 'New York',  'country' => 'United States',  'lat' => 40.7128,  'lon' => -74.0060],
+    'london'   => ['city' => 'London',    'country' => 'United Kingdom', 'lat' => 51.5074,  'lon' => -0.1278],
+    'paris'    => ['city' => 'Paris',     'country' => 'France',         'lat' => 48.8566,  'lon' => 2.3522],
+    'tokyo'    => ['city' => 'Tokyo',     'country' => 'Japan',          'lat' => 35.6762,  'lon' => 139.6503],
+    'sydney'   => ['city' => 'Sydney',    'country' => 'Australia',      'lat' => -33.8688, 'lon' => 151.2093],
+    'capetown' => ['city' => 'Cape Town', 'country' => 'South Africa',   'lat' => -33.9249, 'lon' => 18.4241],
+    'dubai'    => ['city' => 'Dubai',     'country' => 'UAE',            'lat' => 25.2048,  'lon' => 55.2708],
+    'saopaulo' => ['city' => 'Sao Paulo', 'country' => 'Brazil',         'lat' => -23.5505, 'lon' => -46.6333],
 ];
 
 // ---------------------------------------------------------------------------
@@ -48,8 +55,22 @@ $GLOBALS['GEO_MOCK_LOCATIONS'] = [
  */
 function geoLookup(string $ip): array
 {
-    // --- Mock mode: ignore the IP, return a chosen city. ---
+    // --- Mock mode: ignore the IP, return a simulated location. ---
     if (GEO_MOCK_MODE) {
+        // Option A: pass any raw coordinates directly in the URL, e.g.
+        //   login.php?mock_lat=19.0760&mock_lon=72.8777&mock_city=Mumbai
+        // Lets you test ANY point on Earth without editing this file.
+        if (isset($_GET['mock_lat'], $_GET['mock_lon'])) {
+            return [
+                'city'     => $_GET['mock_city']    ?? 'Custom',
+                'country'  => $_GET['mock_country'] ?? 'Custom',
+                'lat'      => (float) $_GET['mock_lat'],
+                'lon'      => (float) $_GET['mock_lon'],
+                'verified' => true,
+            ];
+        }
+
+        // Option B: pick one of the named cities below via ?mock_loc=tokyo etc.
         $key = $_GET['mock_loc'] ?? 'lagos';
         $loc = $GLOBALS['GEO_MOCK_LOCATIONS'][$key]
             ?? $GLOBALS['GEO_MOCK_LOCATIONS']['lagos'];
